@@ -1,0 +1,461 @@
+### Chicken Flow API - REST Client
+### Variables: actualiza con tu token JWT después de hacer login
+
+@baseUrl = http://localhost:3000/api/v1
+@token = TU_TOKEN_AQUI
+
+# ═══════════════════════════════════════════════════════
+# AUTH
+# ═══════════════════════════════════════════════════════
+
+### Registrar usuario
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "name": "Admin Test",
+  "email": "admin@chickenflow.com",
+  "password": "admin123",
+  "role": "admin"
+}
+
+###
+
+### Login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@chickenflow.com",
+  "password": "admin123"
+}
+
+###
+
+### Ver perfil
+GET {{baseUrl}}/profile
+Authorization: Bearer {{token}}
+
+###
+
+# ═══════════════════════════════════════════════════════
+# DASHBOARD
+# ═══════════════════════════════════════════════════════
+
+### Resumen del dashboard
+GET {{baseUrl}}/dashboard/summary
+Authorization: Bearer {{token}}
+
+###
+
+### Módulos rápidos
+GET {{baseUrl}}/dashboard/quick-modules
+Authorization: Bearer {{token}}
+
+###
+
+# ═══════════════════════════════════════════════════════
+# GRANJAS
+# ═══════════════════════════════════════════════════════
+
+### Listar granjas
+GET {{baseUrl}}/farms
+Authorization: Bearer {{token}}
+
+###
+
+### Crear granja
+POST {{baseUrl}}/farms
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Granja Las Palmas",
+  "location": "Quimbaya, Quindío",
+  "areaM2": 18,
+  "zones": 3,
+  "capacity": 144
+}
+
+###
+
+### Ver opciones de granjas (para selects)
+GET {{baseUrl}}/farms/options
+Authorization: Bearer {{token}}
+
+###
+
+# ═══════════════════════════════════════════════════════
+# MÓDULO PILOTO - LOTES
+# ═══════════════════════════════════════════════════════
+
+### Listar lotes piloto
+GET {{baseUrl}}/pilot/lots
+Authorization: Bearer {{token}}
+
+###
+
+### Crear lote piloto
+POST {{baseUrl}}/pilot/lots
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "farmId": "farm-seed-001",
+  "zone": "Zona 1",
+  "birdsInitial": 24,
+  "durationDays": 42,
+  "startDate": "2026-06-13",
+  "pricePollito": 3500,
+  "priceIniciador": 95000,
+  "priceFinalizador": 90000,
+  "priceViruta": 15000,
+  "priceVacunas": 80000,
+  "costCalefaccion": 50000,
+  "costTransporte": 30000,
+  "costProcesamiento": 20000,
+  "costEntrega": 25000,
+  "priceSaleLb": 6500,
+  "expectedWeightKg": 2.5,
+  "expectedCarcassKg": 0.76,
+  "observationsInitial": "Lote de prueba piloto"
+}
+
+###
+
+### Detalle de lote (reemplaza LOT_ID)
+GET {{baseUrl}}/pilot/lots/LOT_ID
+Authorization: Bearer {{token}}
+
+###
+
+### Actualizar estado de lote
+PUT {{baseUrl}}/pilot/lots/LOT_ID
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "status": "finalizado"
+}
+
+###
+
+# ═══════════════════════════════════════════════════════
+# REGISTROS DIARIOS
+# ═══════════════════════════════════════════════════════
+
+### Listar registros diarios del lote
+GET {{baseUrl}}/pilot/lots/LOT_ID/daily-records
+Authorization: Bearer {{token}}
+
+###
+
+### Crear registro diario
+POST {{baseUrl}}/pilot/lots/LOT_ID/daily-records
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "cyclDay": 1,
+  "date": "2026-06-13",
+  "birdsAliveStart": 24,
+  "deadBirds": 0,
+  "feedKg": 1.2,
+  "feedType": "iniciador",
+  "waterChanged": true,
+  "temperatureMorning": 28,
+  "temperatureAfternoon": 30,
+  "observations": "Primer día del ciclo, buen comportamiento"
+}
+
+###
+
+### Actualizar registro diario
+PUT {{baseUrl}}/pilot/daily-records/RECORD_ID
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "deadBirds": 1,
+  "observations": "Se encontró un pollo muerto por aplastamiento"
+}
+
+###
+
+# ═══════════════════════════════════════════════════════
+# REGISTROS SEMANALES
+# ═══════════════════════════════════════════════════════
+
+### Listar registros semanales
+GET {{baseUrl}}/pilot/lots/LOT_ID/weekly-records
+Authorization: Bearer {{token}}
+
+###
+
+### Crear registro semanal (pesaje)
+POST {{baseUrl}}/pilot/lots/LOT_ID/weekly-records
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "weekNumber": 1,
+  "startDay": 1,
+  "endDay": 7,
+  "weighingDate": "2026-06-20",
+  "bird1WeightG": 850,
+  "bird2WeightG": 870,
+  "bird3WeightG": 860,
+  "bird4WeightG": 880,
+  "bird5WeightG": 865,
+  "feedConsumedKg": 8.4,
+  "deadBirdsWeek": 0,
+  "observations": "Primera semana, crecimiento normal"
+}
+
+###
+
+# ═══════════════════════════════════════════════════════
+# REPORTES Y CÁLCULOS
+# ═══════════════════════════════════════════════════════
+
+### Resumen del lote
+GET {{baseUrl}}/pilot/lots/LOT_ID/summary
+Authorization: Bearer {{token}}
+
+###
+
+### Reporte final del lote
+GET {{baseUrl}}/pilot/lots/LOT_ID/final-report
+Authorization: Bearer {{token}}
+
+###
+
+### Calcular alimento necesario
+GET {{baseUrl}}/pilot/calculos/alimento/24?precioIniciador=95000&precioFinalizador=90000
+Authorization: Bearer {{token}}
+
+###
+
+### Verificar viabilidad del lote
+POST {{baseUrl}}/pilot/calculos/viabilidad
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "cantidadPollitos": 24,
+  "precioPollito": 3500,
+  "priceIniciador": 95000,
+  "priceFinalizador": 90000,
+  "priceViruta": 15000,
+  "priceVacunas": 80000,
+  "costCalefaccion": 50000,
+  "costTransporte": 30000,
+  "costProcesamiento": 20000,
+  "costEntrega": 25000,
+  "priceSaleLb": 6500,
+  "expectedWeightKg": 2.5,
+  "expectedCarcassKg": 0.76
+}
+
+###
+
+# ═══════════════════════════════════════════════════════
+# PRODUCCIÓN MULTI-LOTE
+# ═══════════════════════════════════════════════════════
+
+### Resumen de producción del día
+GET {{baseUrl}}/production/summary
+Authorization: Bearer {{token}}
+
+###
+
+### Listar registros de producción
+GET {{baseUrl}}/production/daily-records?date=2026-06-13
+Authorization: Bearer {{token}}
+
+###
+
+# ═══════════════════════════════════════════════════════
+# INVENTARIO DE ALIMENTO
+# ═══════════════════════════════════════════════════════
+
+### Ver inventario
+GET {{baseUrl}}/feed-inventory
+Authorization: Bearer {{token}}
+
+###
+
+### Resumen de inventario
+GET {{baseUrl}}/feed-inventory/summary
+Authorization: Bearer {{token}}
+
+###
+
+### Registrar compra de alimento
+POST {{baseUrl}}/feed-inventory/purchases
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "farmId": "farm-seed-001",
+  "feedType": "finalizador",
+  "brand": "Engorde Plus 40kg",
+  "quantityKg": 80,
+  "unitCost": 90000,
+  "storageLocation": "Bodega Norte · Tarro B",
+  "expirationDate": "2026-08-18"
+}
+
+###
+
+# ═══════════════════════════════════════════════════════
+# CLIENTES
+# ═══════════════════════════════════════════════════════
+
+### Listar clientes
+GET {{baseUrl}}/customers
+Authorization: Bearer {{token}}
+
+###
+
+### Crear cliente
+POST {{baseUrl}}/customers
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Restaurante La Mesa",
+  "document": "98765432",
+  "phone": "3009876543",
+  "city": "Armenia",
+  "customerType": "restaurante",
+  "creditLimit": 2000000
+}
+
+###
+
+### Estado de cuenta del cliente
+GET {{baseUrl}}/customers/CUSTOMER_ID/statement
+Authorization: Bearer {{token}}
+
+###
+
+# ═══════════════════════════════════════════════════════
+# FACTURAS
+# ═══════════════════════════════════════════════════════
+
+### Listar facturas
+GET {{baseUrl}}/invoices
+Authorization: Bearer {{token}}
+
+###
+
+### Crear factura
+POST {{baseUrl}}/invoices
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "customerId": "CUSTOMER_ID",
+  "lotId": "LOT_ID",
+  "issueDate": "2026-06-13",
+  "dueDate": "2026-06-27",
+  "chickensSold": 12,
+  "totalWeightLb": 63.5,
+  "pricePerLb": 7000,
+  "paymentCondition": "credito_15_dias"
+}
+
+###
+
+### Cambiar estado de factura
+PATCH {{baseUrl}}/invoices/INVOICE_ID/status
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "status": "pagada"
+}
+
+###
+
+# ═══════════════════════════════════════════════════════
+# PAGOS
+# ═══════════════════════════════════════════════════════
+
+### Resumen de cobros
+GET {{baseUrl}}/payments/summary
+Authorization: Bearer {{token}}
+
+###
+
+### Registrar pago
+POST {{baseUrl}}/payments
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "invoiceId": "INVOICE_ID",
+  "amount": 200000,
+  "paymentMethod": "transferencia",
+  "paymentDate": "2026-06-14",
+  "reference": "TRX-88912"
+}
+
+###
+
+# ═══════════════════════════════════════════════════════
+# FINANZAS
+# ═══════════════════════════════════════════════════════
+
+### Resumen financiero del mes
+GET {{baseUrl}}/finance/summary?period=2026-06
+Authorization: Bearer {{token}}
+
+###
+
+### Cierre de periodo financiero (solo admin)
+POST {{baseUrl}}/finance/close-period
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "period": "2026-06",
+  "includeLots": ["LOT_ID"],
+  "distributionRule": {
+    "reinvestment": 60,
+    "emergencyFund": 25,
+    "dividends": 15,
+    "founderShare": 80,
+    "operatorShare": 20
+  }
+}
+
+###
+
+# ═══════════════════════════════════════════════════════
+# USUARIOS
+# ═══════════════════════════════════════════════════════
+
+### Listar usuarios (solo admin)
+GET {{baseUrl}}/users
+Authorization: Bearer {{token}}
+
+###
+
+### Invitar usuario
+POST {{baseUrl}}/users/invite
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "María Operadora",
+  "email": "maria@chickenflow.com",
+  "role": "operator",
+  "farmId": "farm-seed-001"
+}
+
+###
+
+### Health check
+GET http://localhost:3000/health
