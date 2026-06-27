@@ -3,6 +3,7 @@
 
 import 'dotenv/config';
 import express from 'express';
+import os from 'os';
 import cors from 'cors';
 import morgan from 'morgan';
 
@@ -38,6 +39,20 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
+// ─── Ruta raíz ────────────────────────────────────────────────────────────────
+app.get('/', (_req, res) => {
+  res.json({
+    status: 'running',
+    service: 'Chicken Flow API',
+    version: '1.0.0',
+    description: 'API Backend del sistema avícola Chicken Flow',
+    environment: process.env.NODE_ENV ?? 'development',
+    docs: '/api/v1',
+    health: '/health',
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // ─── Health check ─────────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'chicken-flow-api', version: '1.0.0', timestamp: new Date().toISOString() });
@@ -70,20 +85,35 @@ app.use(errorHandler);
 // ─── Inicio del servidor ──────────────────────────────────────────────────────
 const PORT = parseInt(process.env.PORT ?? '3000', 10);
 
+function getLocalIP(): string {
+  const interfaces = os.networkInterfaces();
+  for (const iface of Object.values(interfaces)) {
+    if (!iface) continue;
+    for (const alias of iface) {
+      if (alias.family === 'IPv4' && !alias.internal) {
+        return alias.address;
+      }
+    }
+  }
+  return '127.0.0.1';
+}
+
 app.listen(PORT, () => {
+  const ip = getLocalIP();
+  const cyan  = '\x1b[36m';
+  const green = '\x1b[32m';
+  const reset = '\x1b[0m';
+  const bold  = '\x1b[1m';
   console.log(`
-  ╔══════════════════════════════════════════════╗
-  ║     🐔 Chicken Flow API v1.0.0               ║
-  ║     Puerto: ${PORT}                               ║
-  ║     Entorno: ${process.env.NODE_ENV ?? 'development'}                 ║
-  ╚══════════════════════════════════════════════╝
-  
-  Endpoints disponibles:
-  → GET  /health
-  → POST /api/v1/auth/login
-  → POST /api/v1/auth/register
-  → GET  /api/v1/dashboard/summary
-  → ...y muchos más. Ver README.md para la lista completa.
+  ╔══════════════════════════════════════════════════╗
+  ║   ${bold}🐔 Chicken Flow API v1.0.0${reset}                     ║
+  ║   Puerto : ${bold}${PORT}${reset}                                  ║
+  ║   Entorno: ${bold}${process.env.NODE_ENV ?? 'development'}${reset}                           ║
+  ║                                                  ║
+  ║   ${cyan}${bold}URLs de acceso:${reset}                                ║
+  ║   ${green}→ Local  ${reset}http://localhost:${PORT}                 ║
+  ║   ${green}→ Red    ${reset}http://${ip}:${PORT}             ║
+  ╚══════════════════════════════════════════════════╝
   `);
 });
 
