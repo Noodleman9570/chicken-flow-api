@@ -1,5 +1,5 @@
 -- CreateEnum
-CREATE TYPE "UserRole" AS ENUM ('admin', 'operator', 'client', 'develop');
+CREATE TYPE "UserRole" AS ENUM ('superadmin', 'admin', 'operator', 'client', 'develop');
 
 -- CreateEnum
 CREATE TYPE "UserStatus" AS ENUM ('activo', 'pendiente', 'bloqueado');
@@ -49,6 +49,15 @@ CREATE TYPE "ReportStatus" AS ENUM ('listo', 'programado', 'pendiente');
 -- CreateEnum
 CREATE TYPE "ReportFormat" AS ENUM ('pdf', 'excel', 'dashboard');
 
+-- CreateEnum
+CREATE TYPE "NotificationModule" AS ENUM ('pilot', 'cycle', 'collections', 'general');
+
+-- CreateEnum
+CREATE TYPE "NotificationType" AS ENUM ('task', 'alert', 'collection_due', 'info', 'manual');
+
+-- CreateEnum
+CREATE TYPE "NotificationPriority" AS ENUM ('high', 'medium', 'low');
+
 -- CreateTable
 CREATE TABLE "users" (
     "id" TEXT NOT NULL,
@@ -58,6 +67,9 @@ CREATE TABLE "users" (
     "role" "UserRole" NOT NULL DEFAULT 'operator',
     "status" "UserStatus" NOT NULL DEFAULT 'pendiente',
     "last_login" TIMESTAMP(3),
+    "allowed_routes" JSONB,
+    "reset_token" TEXT,
+    "reset_token_expires" TIMESTAMP(3),
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
@@ -300,6 +312,27 @@ CREATE TABLE "reports" (
     CONSTRAINT "reports_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "notifications" (
+    "id" TEXT NOT NULL,
+    "user_id" TEXT NOT NULL,
+    "created_by" TEXT,
+    "module" "NotificationModule" NOT NULL DEFAULT 'general',
+    "type" "NotificationType" NOT NULL DEFAULT 'info',
+    "priority" "NotificationPriority" NOT NULL DEFAULT 'medium',
+    "title" TEXT NOT NULL,
+    "message" TEXT NOT NULL,
+    "href" TEXT NOT NULL DEFAULT '/dashboard',
+    "read" BOOLEAN NOT NULL DEFAULT false,
+    "read_at" TIMESTAMP(3),
+    "expires_at" TIMESTAMP(3),
+    "metadata" JSONB,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "notifications_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
 
@@ -320,6 +353,12 @@ CREATE UNIQUE INDEX "invoices_number_key" ON "invoices"("number");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "financial_distributions_period_key" ON "financial_distributions"("period");
+
+-- CreateIndex
+CREATE INDEX "notifications_user_id_read_idx" ON "notifications"("user_id", "read");
+
+-- CreateIndex
+CREATE INDEX "notifications_user_id_created_at_idx" ON "notifications"("user_id", "created_at");
 
 -- AddForeignKey
 ALTER TABLE "farm_users" ADD CONSTRAINT "farm_users_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -359,46 +398,6 @@ ALTER TABLE "payments" ADD CONSTRAINT "payments_invoice_id_fkey" FOREIGN KEY ("i
 
 -- AddForeignKey
 ALTER TABLE "reports" ADD CONSTRAINT "reports_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- ============================
--- MÓDULO 13: NOTIFICACIONES
--- ============================
-
--- CreateEnum
-CREATE TYPE "NotificationModule" AS ENUM ('pilot', 'cycle', 'collections', 'general');
-
--- CreateEnum
-CREATE TYPE "NotificationType" AS ENUM ('task', 'alert', 'collection_due', 'info', 'manual');
-
--- CreateEnum
-CREATE TYPE "NotificationPriority" AS ENUM ('high', 'medium', 'low');
-
--- CreateTable
-CREATE TABLE "notifications" (
-    "id" TEXT NOT NULL,
-    "user_id" TEXT NOT NULL,
-    "created_by" TEXT,
-    "module" "NotificationModule" NOT NULL DEFAULT 'general',
-    "type" "NotificationType" NOT NULL DEFAULT 'info',
-    "priority" "NotificationPriority" NOT NULL DEFAULT 'medium',
-    "title" TEXT NOT NULL,
-    "message" TEXT NOT NULL,
-    "href" TEXT NOT NULL DEFAULT '/dashboard',
-    "read" BOOLEAN NOT NULL DEFAULT false,
-    "read_at" TIMESTAMP(3),
-    "expires_at" TIMESTAMP(3),
-    "metadata" JSONB,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "notifications_pkey" PRIMARY KEY ("id")
-);
-
--- CreateIndex
-CREATE INDEX "notifications_user_id_read_idx" ON "notifications"("user_id", "read");
-
--- CreateIndex
-CREATE INDEX "notifications_user_id_created_at_idx" ON "notifications"("user_id", "created_at");
 
 -- AddForeignKey
 ALTER TABLE "notifications" ADD CONSTRAINT "notifications_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
