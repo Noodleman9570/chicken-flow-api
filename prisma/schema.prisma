@@ -103,7 +103,6 @@ enum LotStatus {
   activo
   en_revision
   finalizado
-  cerrado
   cancelado
 }
 

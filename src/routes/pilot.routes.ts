@@ -3,8 +3,8 @@
 import { Router } from 'express';
 import {
   listLots, getLot, createLot, updateLot, closeLot,
-  listDailyRecords, createDailyRecord, updateDailyRecord,
-  listWeeklyRecords, createWeeklyRecord,
+  listDailyRecords, createDailyRecord, updateDailyRecord, deleteDailyRecord,
+  listWeeklyRecords, createWeeklyRecord, deleteWeeklyRecord,
   getLotSummary, getFinalReport,
   calcularAlimento, calcularViabilidad,
 } from '../controllers/pilot.controller';
@@ -24,10 +24,12 @@ router.patch('/lots/:id/close', closeLot);
 router.get('/lots/:id/daily-records', listDailyRecords);
 router.post('/lots/:id/daily-records', createDailyRecord);
 router.put('/daily-records/:recordId', updateDailyRecord);
+router.delete('/daily-records/:recordId', deleteDailyRecord);
 
 // Registros semanales
 router.get('/lots/:id/weekly-records', listWeeklyRecords);
 router.post('/lots/:id/weekly-records', createWeeklyRecord);
+router.delete('/weekly-records/:recordId', deleteWeeklyRecord);
 
 // Resumen y reporte final
 router.get('/lots/:id/summary', getLotSummary);
