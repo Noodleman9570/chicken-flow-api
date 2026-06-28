@@ -3,12 +3,28 @@
 
 import 'dotenv/config';
 import { prisma } from '../src/config/prisma';
+import { Prisma } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 async function main() {
   console.log('🌱 Iniciando seed de base de datos...');
 
-  // 1. Crear usuario admin
+  // ─── 1. SUPERADMIN (develop) — acceso total ───────────────────────────────
+  const superHash = await bcrypt.hash('super123', 10);
+  await prisma.user.upsert({
+    where: { email: 'superadmin@chickenflow.com' },
+    update: {},
+    create: {
+      name: 'Super Administrador',
+      email: 'superadmin@chickenflow.com',
+      passwordHash: superHash,
+      role: 'develop',           // develop = superadmin en el sistema
+      status: 'activo',
+      allowedRoutes: Prisma.JsonNull, // JsonNull = sin restricción (ve todo)
+    },
+  });
+
+  // ─── 2. ADMIN — gestión completa excepto panel sistema ───────────────────
   const adminHash = await bcrypt.hash('admin123', 10);
   const admin = await prisma.user.upsert({
     where: { email: 'admin@chickenflow.com' },
@@ -19,10 +35,19 @@ async function main() {
       passwordHash: adminHash,
       role: 'admin',
       status: 'activo',
+      allowedRoutes: [
+        '/dashboard',
+        '/dashboard/pilot', '/dashboard/pilot/setup', '/dashboard/pilot/daily',
+        '/dashboard/pilot/weekly', '/dashboard/pilot/final',
+        '/dashboard/cycle/active', '/dashboard/cycle/calendar',
+        '/dashboard/cycle/daily', '/dashboard/cycle/inventory',
+        '/dashboard/balance', '/dashboard/payments',
+        '/dashboard/collections', '/dashboard/profile',
+      ],
     },
   });
 
-  // 2. Crear usuario operador
+  // ─── 3. OPERADOR — registro diario y pesajes únicamente ──────────────────
   const opHash = await bcrypt.hash('op12345', 10);
   const operator = await prisma.user.upsert({
     where: { email: 'operador@chickenflow.com' },
@@ -33,6 +58,30 @@ async function main() {
       passwordHash: opHash,
       role: 'operator',
       status: 'activo',
+      allowedRoutes: [
+        '/dashboard',
+        '/dashboard/pilot', '/dashboard/pilot/daily', '/dashboard/pilot/weekly',
+        '/dashboard/profile',
+      ],
+    },
+  });
+
+  // ─── 4. CLIENT — vista básica de seguimiento ─────────────────────────────
+  const clientHash = await bcrypt.hash('client123', 10);
+  await prisma.user.upsert({
+    where: { email: 'cliente@chickenflow.com' },
+    update: {},
+    create: {
+      name: 'Juan Cliente',
+      email: 'cliente@chickenflow.com',
+      passwordHash: clientHash,
+      role: 'client',
+      status: 'activo',
+      allowedRoutes: [
+        '/dashboard',
+        '/dashboard/pilot', '/dashboard/pilot/daily',
+        '/dashboard/profile',
+      ],
     },
   });
 
@@ -127,11 +176,20 @@ async function main() {
 
   console.log(`
   ✅ Seed completado:
-  → Admin:    admin@chickenflow.com / admin123
-  → Operador: operador@chickenflow.com / op12345
-  → Granja:   Granja Las Palmas (${farm.id})
-  → Lote:     L-2026-001 (24 pollitos, activo)
-  → Cliente:  Restaurante La Mesa
+
+  👤 Usuarios de prueba:
+  ┌─────────────┬────────────────────────────────────┬────────────┐
+  │ Rol         │ Email                              │ Contraseña │
+  ├─────────────┼────────────────────────────────────┼────────────┤
+  │ superadmin  │ superadmin@chickenflow.com         │ super123   │
+  │ admin       │ admin@chickenflow.com              │ admin123   │
+  │ operator    │ operador@chickenflow.com           │ op12345    │
+  │ client      │ cliente@chickenflow.com            │ client123  │
+  └─────────────┴────────────────────────────────────┴────────────┘
+
+  🏚  Granja:  Granja Las Palmas (${farm.id})
+  🐔 Lote:    L-2026-001 (24 pollitos, activo)
+  🧑 Cliente: Restaurante La Mesa
   `);
 }
 

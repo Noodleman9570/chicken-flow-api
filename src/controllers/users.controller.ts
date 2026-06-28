@@ -108,6 +108,33 @@ export async function updateUserStatus(req: Request, res: Response): Promise<voi
   }
 }
 
+// PUT /api/v1/users/:id/allowed-routes — Solo superadmin/develop
+export async function updateAllowedRoutes(req: Request, res: Response): Promise<void> {
+  try {
+    const callerRole = req.user?.role;
+    if (!['develop', 'superadmin'].includes(callerRole as string)) {
+      sendError(res, 'Solo super administradores pueden gestionar permisos de ruta', 'FORBIDDEN', 403);
+      return;
+    }
+
+    const id = pid(req.params.id);
+    const { allowedRoutes } = req.body as { allowedRoutes: string[] | null };
+
+    const existing = await prisma.user.findUnique({ where: { id } });
+    if (!existing) { sendNotFound(res, 'Usuario'); return; }
+
+    const user = await (prisma as any).user.update({
+      where: { id },
+      data: { allowed_routes: allowedRoutes ?? null },
+      select: { id: true, name: true, email: true, role: true, allowed_routes: true },
+    });
+
+    sendSuccess(res, user, 'Permisos de ruta actualizados');
+  } catch (err) {
+    sendServerError(res, err);
+  }
+}
+
 export async function listPermissions(_req: Request, res: Response): Promise<void> {
   const permissions = [
     { key: 'lots:read', label: 'Ver lotes', module: 'produccion' },

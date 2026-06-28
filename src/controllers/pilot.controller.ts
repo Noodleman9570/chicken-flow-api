@@ -161,6 +161,24 @@ export async function updateLot(req: Request, res: Response): Promise<void> {
   }
 }
 
+export async function closeLot(req: Request, res: Response): Promise<void> {
+  try {
+    const existing = await prisma.lot.findUnique({ where: { id: pid(req.params.id) } });
+    if (!existing) { sendNotFound(res, 'Lote'); return; }
+    if (existing.status === 'cerrado') {
+      sendError(res, 'El lote ya está cerrado', 'VALIDATION_ERROR', 400);
+      return;
+    }
+    const lot = await prisma.lot.update({
+      where: { id: pid(req.params.id) },
+      data: { status: 'cerrado' },
+    });
+    sendSuccess(res, lot, 'Lote cerrado correctamente');
+  } catch (err) {
+    sendServerError(res, err);
+  }
+}
+
 // =====================
 // REGISTROS DIARIOS
 // =====================

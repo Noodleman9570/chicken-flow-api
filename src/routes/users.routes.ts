@@ -1,6 +1,6 @@
 // src/routes/users.routes.ts
 import { Router } from 'express';
-import { listUsers, inviteUser, updateUser, updateUserStatus, listPermissions } from '../controllers/users.controller';
+import { listUsers, inviteUser, updateUser, updateUserStatus, listPermissions, updateAllowedRoutes } from '../controllers/users.controller';
 import { authenticate, requireRole } from '../middleware/auth.middleware';
 import { getProfile } from '../controllers/auth.controller';
 
@@ -12,5 +12,6 @@ router.get('/', requireRole('admin'), listUsers);
 router.post('/invite', requireRole('admin'), inviteUser);
 router.put('/:id', requireRole('admin'), updateUser);
 router.patch('/:id/status', requireRole('admin'), updateUserStatus);
+router.put('/:id/allowed-routes', updateAllowedRoutes);
 
 export default router;
