@@ -2,7 +2,7 @@
 // Módulo 03 Piloto + endpoints clásicos de endpoints-avicola.md
 import { Router } from 'express';
 import {
-  listLots, getLot, createLot, updateLot,
+  listLots, getLot, createLot, updateLot, closeLot,
   listDailyRecords, createDailyRecord, updateDailyRecord,
   listWeeklyRecords, createWeeklyRecord,
   getLotSummary, getFinalReport,
@@ -18,6 +18,7 @@ router.get('/lots', listLots);
 router.get('/lots/:id', getLot);
 router.post('/lots', createLot);
 router.put('/lots/:id', updateLot);
+router.patch('/lots/:id/close', closeLot);
 
 // Registros diarios
 router.get('/lots/:id/daily-records', listDailyRecords);

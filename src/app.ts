@@ -20,6 +20,9 @@ import paymentsRoutes from './routes/payments.routes';
 import financeRoutes from './routes/finance.routes';
 import reportsRoutes from './routes/reports.routes';
 import usersRoutes from './routes/users.routes';
+import notificationsRoutes from './routes/notifications.routes';
+import adminRoutes from './routes/admin.routes';
+import { initCronJobs } from './utils/cron';
 
 // Middlewares
 import { errorHandler, notFoundHandler } from './middleware/error.middleware';
@@ -73,6 +76,8 @@ app.use(`${v1}/payments`, paymentsRoutes);
 app.use(`${v1}/finance`, financeRoutes);
 app.use(`${v1}/reports`, reportsRoutes);
 app.use(`${v1}/users`, usersRoutes);
+app.use(`${v1}/notifications`, notificationsRoutes);
+app.use(`${v1}/admin`, adminRoutes);
 
 // Endpoints de usuarios adicionales
 app.get(`${v1}/permissions`, authenticate, listPermissions);
@@ -97,6 +102,9 @@ function getLocalIP(): string {
   }
   return '127.0.0.1';
 }
+
+// ─── Iniciar cron jobs ──────────────────────────────────────────────────────
+initCronJobs();
 
 app.listen(PORT, () => {
   const ip = getLocalIP();

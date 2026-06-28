@@ -359,3 +359,49 @@ ALTER TABLE "payments" ADD CONSTRAINT "payments_invoice_id_fkey" FOREIGN KEY ("i
 
 -- AddForeignKey
 ALTER TABLE "reports" ADD CONSTRAINT "reports_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- ============================
+-- MÓDULO 13: NOTIFICACIONES
+-- ============================
+
+-- CreateEnum
+CREATE TYPE "NotificationModule" AS ENUM ('pilot', 'cycle', 'collections', 'general');
+
+-- CreateEnum
+CREATE TYPE "NotificationType" AS ENUM ('task', 'alert', 'collection_due', 'info', 'manual');
+
+-- CreateEnum
+CREATE TYPE "NotificationPriority" AS ENUM ('high', 'medium', 'low');
+
+-- CreateTable
+CREATE TABLE "notifications" (
+    "id" TEXT NOT NULL,
+    "user_id" TEXT NOT NULL,
+    "created_by" TEXT,
+    "module" "NotificationModule" NOT NULL DEFAULT 'general',
+    "type" "NotificationType" NOT NULL DEFAULT 'info',
+    "priority" "NotificationPriority" NOT NULL DEFAULT 'medium',
+    "title" TEXT NOT NULL,
+    "message" TEXT NOT NULL,
+    "href" TEXT NOT NULL DEFAULT '/dashboard',
+    "read" BOOLEAN NOT NULL DEFAULT false,
+    "read_at" TIMESTAMP(3),
+    "expires_at" TIMESTAMP(3),
+    "metadata" JSONB,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "notifications_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE INDEX "notifications_user_id_read_idx" ON "notifications"("user_id", "read");
+
+-- CreateIndex
+CREATE INDEX "notifications_user_id_created_at_idx" ON "notifications"("user_id", "created_at");
+
+-- AddForeignKey
+ALTER TABLE "notifications" ADD CONSTRAINT "notifications_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "notifications" ADD CONSTRAINT "notifications_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
