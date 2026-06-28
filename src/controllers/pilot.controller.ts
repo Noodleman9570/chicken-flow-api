@@ -2,6 +2,7 @@
 // Módulo 03: Módulo Piloto + Endpoints de endpoints-avicola.md
 
 import { Request, Response } from 'express';
+import { LotStatus } from '@prisma/client';
 import prisma from '../config/prisma';
 import {
   sendSuccess, sendError, sendNotFound, sendServerError, getPaginationParams,
@@ -34,6 +35,24 @@ function validateLotBody(body: Record<string, unknown>): string | null {
   if (!priceIniciador || priceIniciador <= 0) return 'Precio del alimento iniciador debe ser mayor a 0';
   if (!priceFinalizador || priceFinalizador <= 0) return 'Precio del alimento finalizador debe ser mayor a 0';
   if (!priceSaleLb || priceSaleLb <= 0) return 'Precio de venta por libra debe ser mayor a 0';
+  return null;
+}
+
+function startOfDay(date: Date): Date {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function isFutureDate(date: Date): boolean {
+  return startOfDay(date) > startOfDay(new Date());
+}
+
+function validateDateNotFuture(date: Date | string | undefined, label: string): string | null {
+  if (!date) return null;
+  const d = typeof date === 'string' ? new Date(date) : date;
+  if (isNaN(d.getTime())) return `${label} tiene un formato inválido`;
+  if (isFutureDate(d)) return `${label} no puede ser una fecha futura`;
   return null;
 }
 
@@ -142,17 +161,42 @@ export async function updateLot(req: Request, res: Response): Promise<void> {
     const existing = await prisma.lot.findUnique({ where: { id: pid(req.params.id) } });
     if (!existing) { sendNotFound(res, 'Lote'); return; }
 
-    const { status, observationsInitial, expectedWeightKg, expectedCarcassKg, priceSaleLb, zone } = req.body;
+    const {
+      status, zone, durationDays, startDate,
+      birdsInitial, pricePollito, priceIniciador, priceFinalizador,
+      priceViruta, priceVacunas, costCalefaccion, costTransporte,
+      costProcesamiento, costEntrega, priceSaleLb,
+      expectedWeightKg, expectedCarcassKg, observationsInitial,
+    } = req.body as Record<string, unknown>;
+
+    // Si se modifica duración o fecha inicio, recalcular fecha de cosecha esperada
+    const newDuration = durationDays ? Number(durationDays) : existing.durationDays;
+    const newStart = startDate ? new Date(String(startDate)) : existing.startDate;
+    const newHarvest = new Date(newStart);
+    newHarvest.setDate(newHarvest.getDate() + Number(newDuration));
 
     const lot = await prisma.lot.update({
       where: { id: pid(req.params.id) },
       data: {
-        ...(status && { status }),
-        ...(observationsInitial !== undefined && { observationsInitial }),
-        ...(expectedWeightKg && { expectedWeightKg }),
-        ...(expectedCarcassKg && { expectedCarcassKg }),
-        ...(priceSaleLb && { priceSaleLb }),
-        ...(zone && { zone }),
+        ...(status !== undefined && { status: status as LotStatus }),
+        ...(zone !== undefined && { zone: String(zone) }),
+        ...(durationDays !== undefined && { durationDays: Number(durationDays) }),
+        ...(startDate !== undefined && { startDate: newStart }),
+        ...(birdsInitial !== undefined && { birdsInitial: Number(birdsInitial) }),
+        ...(pricePollito !== undefined && { pricePollito: Number(pricePollito) }),
+        ...(priceIniciador !== undefined && { priceIniciador: Number(priceIniciador) }),
+        ...(priceFinalizador !== undefined && { priceFinalizador: Number(priceFinalizador) }),
+        ...(priceViruta !== undefined && { priceViruta: Number(priceViruta) }),
+        ...(priceVacunas !== undefined && { priceVacunas: Number(priceVacunas) }),
+        ...(costCalefaccion !== undefined && { costCalefaccion: Number(costCalefaccion) }),
+        ...(costTransporte !== undefined && { costTransporte: Number(costTransporte) }),
+        ...(costProcesamiento !== undefined && { costProcesamiento: Number(costProcesamiento) }),
+        ...(costEntrega !== undefined && { costEntrega: Number(costEntrega) }),
+        ...(priceSaleLb !== undefined && { priceSaleLb: Number(priceSaleLb) }),
+        ...(expectedWeightKg !== undefined && { expectedWeightKg: Number(expectedWeightKg) }),
+        ...(expectedCarcassKg !== undefined && { expectedCarcassKg: Number(expectedCarcassKg) }),
+        ...(observationsInitial !== undefined && { observationsInitial: String(observationsInitial) }),
+        expectedHarvestDate: newHarvest,
       },
     });
     sendSuccess(res, lot, 'Lote actualizado');
@@ -165,15 +209,15 @@ export async function closeLot(req: Request, res: Response): Promise<void> {
   try {
     const existing = await prisma.lot.findUnique({ where: { id: pid(req.params.id) } });
     if (!existing) { sendNotFound(res, 'Lote'); return; }
-    if (existing.status === 'cerrado') {
-      sendError(res, 'El lote ya está cerrado', 'VALIDATION_ERROR', 400);
+    if (existing.status === 'finalizado') {
+      sendError(res, 'El lote ya está finalizado', 'VALIDATION_ERROR', 400);
       return;
     }
     const lot = await prisma.lot.update({
       where: { id: pid(req.params.id) },
-      data: { status: 'cerrado' },
+      data: { status: 'finalizado' },
     });
-    sendSuccess(res, lot, 'Lote cerrado correctamente');
+    sendSuccess(res, lot, 'Lote finalizado correctamente');
   } catch (err) {
     sendServerError(res, err);
   }
@@ -225,8 +269,18 @@ export async function createDailyRecord(req: Request, res: Response): Promise<vo
       sendError(res, 'Los pollos vivos no pueden aumentar respecto al día anterior', 'BUSINESS_ERROR', 400);
       return;
     }
+    if (Number(deadBirds) < 0 || Number(deadBirds) > Number(birdsAliveStart)) {
+      sendError(res, 'Muertos no puede ser negativo ni mayor a los pollos vivos al inicio', 'VALIDATION_ERROR', 400);
+      return;
+    }
+    const dateError = validateDateNotFuture(date as string | Date | undefined, 'Fecha de registro');
+    if (dateError) { sendError(res, dateError, 'VALIDATION_ERROR', 400); return; }
     if (temperatureMorning && (Number(temperatureMorning) < 10 || Number(temperatureMorning) > 45)) {
-      sendError(res, 'Temperatura debe estar entre 10°C y 45°C', 'VALIDATION_ERROR', 400);
+      sendError(res, 'Temperatura mañana debe estar entre 10°C y 45°C', 'VALIDATION_ERROR', 400);
+      return;
+    }
+    if (temperatureAfternoon && (Number(temperatureAfternoon) < 10 || Number(temperatureAfternoon) > 45)) {
+      sendError(res, 'Temperatura tarde debe estar entre 10°C y 45°C', 'VALIDATION_ERROR', 400);
       return;
     }
     if (!feedKg || Number(feedKg) < 0) {
@@ -296,6 +350,29 @@ export async function updateDailyRecord(req: Request, res: Response): Promise<vo
   }
 }
 
+export async function deleteDailyRecord(req: Request, res: Response): Promise<void> {
+  try {
+    const record = await prisma.dailyRecord.findUnique({ where: { id: pid(req.params.recordId) } });
+    if (!record) { sendNotFound(res, 'Registro diario'); return; }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.dailyRecord.delete({ where: { id: record.id } });
+      // Recalcular birdsAlive del lote: sumar muertos del registro eliminado
+      const lot = await tx.lot.findUnique({ where: { id: record.lotId } });
+      if (lot) {
+        await tx.lot.update({
+          where: { id: record.lotId },
+          data: { birdsAlive: lot.birdsAlive + record.deadBirds },
+        });
+      }
+    });
+
+    sendSuccess(res, null, 'Registro diario eliminado');
+  } catch (err) {
+    sendServerError(res, err);
+  }
+}
+
 // =====================
 // REGISTROS SEMANALES
 // =====================
@@ -340,6 +417,12 @@ export async function createWeeklyRecord(req: Request, res: Response): Promise<v
       sendError(res, 'Mortalidad semanal no puede superar el 20%', 'BUSINESS_ERROR', 400);
       return;
     }
+    if (Number(deadBirdsWeek) < 0 || Number(deadBirdsWeek) > lot.birdsAlive) {
+      sendError(res, 'Muertos semanal no puede ser negativo ni mayor a los pollos vivos actuales', 'VALIDATION_ERROR', 400);
+      return;
+    }
+    const dateError = validateDateNotFuture(weighingDate as string | Date | undefined, 'Fecha de pesaje');
+    if (dateError) { sendError(res, dateError, 'VALIDATION_ERROR', 400); return; }
 
     const avgWeightG = calcularPesoPromedio(pesos);
 
@@ -367,6 +450,18 @@ export async function createWeeklyRecord(req: Request, res: Response): Promise<v
       sendError(res, 'Ya existe un registro para esa semana', 'BUSINESS_ERROR', 409);
       return;
     }
+    sendServerError(res, err);
+  }
+}
+
+export async function deleteWeeklyRecord(req: Request, res: Response): Promise<void> {
+  try {
+    const record = await prisma.weeklyRecord.findUnique({ where: { id: pid(req.params.recordId) } });
+    if (!record) { sendNotFound(res, 'Registro semanal'); return; }
+
+    await prisma.weeklyRecord.delete({ where: { id: record.id } });
+    sendSuccess(res, null, 'Registro semanal eliminado');
+  } catch (err) {
     sendServerError(res, err);
   }
 }
